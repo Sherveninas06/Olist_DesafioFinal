@@ -1,0 +1,27 @@
+// PERGUNTAS IMPORTANTES Desafio 1  \\
+
+@ Identificar e converta corretamente os campos de data/hora :
++ Verificar se os campos order_approved_at e order_delivered_customer_date estão no formato de data/hora 
++ Se estiverem como texto, converta-os corretamente para o formato de data/timestamp no ambiente que estiver usando.
+
+@ Trabalhe apenas com pedidos entregues:
++ Filtre os registros onde ambos os campos order_approved_at e order_delivered_customer_date estão preenchidos ( não nulos ) 
+
+@ Calcule a diferença e use as funções de agregação :
++ Calcule o tempo de entrega ao cliente e a data de aprovação do pedido 
+# Funções de agregação : AVG() - SQL / mean() - Pandas 
+
+Importe a biblioteca seaborn para utilizar o 
+histograma: sns.histplot()
+
+// PERGUNTAS IMPORTANTES Desafio 2 \\
+Identificar qual o mês com maior quantidade de vendas (em número de pedido) e o mês com os maiores agamentos (pagamentos);
+
+@ Extraiao mês e o ano da data de compra ( order_purchase_timestamp)
+# A base de tudo está na data da compra, que está na tabela olist_orders_dataset
++ Extrair ano e mês da coluna order_purchase_timestamp, transformando em um campo de periodo
+
+@ Use as tabelas certas para contasr pedidos e somar pagamentos 
++ Para quantidade de vendas por mês , use a olist_orders_dataset : conte os order_id por mês
++ Para valor total pago por mês, use a olist_order_payments_dataset: junte com olist_orders_dataset para saber em que mês o pedido foi feito
+# Depois, some os valores da coluna payment_value agrupando pelo mês da compra 

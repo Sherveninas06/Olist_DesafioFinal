@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Olist · Dashboard de Análise</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ===== Tokens · Sonic.Link Design System ===== */
+:root{
+  --page:#000000; --canvas:#0a0a0a; --panel:#0f0f11; --glass:rgba(24,24,27,.9); --glass-nav:rgba(24,24,27,.8);
+  --well:rgba(0,0,0,.4); --control:#27272a; --ghost:rgba(255,255,255,.05);
+  --primary:#6366F1; --primary-400:#818cf8; --glow:rgba(99,102,241,.4); --glow-strong:rgba(99,102,241,.8);
+  --lime:#bef264; --fuchsia:#f0abfc;
+  --t-primary:#ffffff; --t-head:#f4f4f5; --t-strong:#d4d4d8; --t-body:#a1a1aa; --t-muted:#71717a; --t-faint:#52525b;
+  --hair:rgba(255,255,255,.05); --divider:rgba(255,255,255,.1); --line:#27272a; --line-strong:#3f3f46;
+  --ok:#34d399; --ok-dot:#10b981; --warn:#fbbf24; --crit:#fb7185;
+  /* série de dados (validada no fundo #18181B: banda L, croma, CVD, contraste) */
+  --s1:#818cf8; --s2:#78a91a; --s3:#d65ce8;
+  --grid:rgba(255,255,255,.06); --axis:#52525b;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--page);color:var(--t-body);font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+a{color:inherit}
+/* fundo: bloom índigo + grade de pontos (DS · Overlays) */
+.bg-bloom{position:fixed;top:-300px;left:50%;width:800px;height:800px;transform:translateX(-50%);border-radius:50%;
+  background:radial-gradient(circle,#6366F1 0%,transparent 60%);opacity:.22;filter:blur(120px);pointer-events:none;z-index:0}
+.bg-dots{position:fixed;inset:0;background-image:radial-gradient(#ffffff 1px,transparent 1px);background-size:32px 32px;opacity:.06;pointer-events:none;z-index:0}
+.wrap{position:relative;z-index:1;max-width:84rem;margin:0 auto;padding:0 24px 64px}
+
+/* ===== Navbar pill ===== */
+header.nav{position:sticky;top:16px;z-index:50;margin:16px auto 0;max-width:84rem;padding:0 24px}
+.nav-pill{display:flex;align-items:center;gap:16px;justify-content:space-between;padding:8px 8px 8px 20px;border-radius:9999px;
+  background:var(--glass-nav);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid var(--hair);box-shadow:0 20px 50px -20px #000}
+.brand{display:flex;align-items:center;gap:10px;white-space:nowrap}
+.brand svg{color:var(--primary)}
+.brand b{font-weight:400;font-size:14px;letter-spacing:-.04em;text-transform:uppercase;color:#fff}
+.brand span{font-size:10px;color:var(--t-muted);letter-spacing:.18em}
+.tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{appearance:none;border:0;background:transparent;color:var(--t-muted);font:500 11px 'JetBrains Mono',monospace;letter-spacing:.12em;text-transform:uppercase;
+  padding:10px 14px;border-radius:9999px;cursor:pointer;white-space:nowrap;transition:color .2s,background .2s}
+.tab:hover{color:#fff;background:var(--ghost)}
+.tab.on{color:#fff;background:var(--primary);box-shadow:0 0 12px var(--glow)}
+.tab:focus-visible,.chip:focus-visible,.gbtn:focus-visible{outline:2px solid var(--primary-400);outline-offset:2px}
+
+/* ===== Hero de seção ===== */
+.hero{padding:56px 0 28px;display:flex;flex-direction:column;gap:14px}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;width:fit-content;padding:4px 12px;border-radius:9999px;border:1px solid var(--divider);background:var(--ghost);
+  font:400 11px 'JetBrains Mono',monospace;letter-spacing:.2em;color:var(--t-body);text-transform:uppercase}
+.eyebrow i{width:6px;height:6px;border-radius:50%;background:var(--primary);box-shadow:0 0 8px var(--glow-strong);animation:pulse 2s infinite}
+@keyframes pulse{50%{opacity:.4}}
+h1{margin:0;font-weight:400;font-size:clamp(30px,4.4vw,52px);letter-spacing:-.035em;line-height:1.05;color:#fff;max-width:22ch}
+h1 em{font-style:normal;color:var(--primary-400)}
+.lead{margin:0;max-width:72ch;font-size:15px;line-height:1.65;font-weight:300;color:var(--t-body)}
+.qtag{display:flex;flex-wrap:wrap;gap:8px}
+.tag{display:inline-flex;align-items:center;gap:6px;background:#18181b;border:1px solid var(--line);border-radius:4px;padding:4px 8px;font:400 10px 'JetBrains Mono',monospace;color:var(--t-body);letter-spacing:.04em}
+
+/* ===== Grid & cards ===== */
+.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:16px}
+.c3{grid-column:span 3}.c4{grid-column:span 4}.c5{grid-column:span 5}.c6{grid-column:span 6}.c7{grid-column:span 7}.c8{grid-column:span 8}.c12{grid-column:span 12}
+@media (max-width:1024px){.c3{grid-column:span 6}.c4,.c5,.c6,.c7,.c8{grid-column:span 12}}
+@media (max-width:620px){.c3{grid-column:span 12}.wrap,header.nav{padding:0 12px}.brand span{display:none}}
+.card{padding:1px;border-radius:20px;background:linear-gradient(to bottom,rgba(255,255,255,.1),transparent);box-shadow:0 25px 50px -12px rgba(0,0,0,.8)}
+.card.feat{background:linear-gradient(to bottom,rgba(99,102,241,.35),rgba(255,255,255,.05),transparent)}
+.card-in{position:relative;height:100%;border-radius:19px;background:var(--glass);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid var(--hair);overflow:hidden;display:flex;flex-direction:column}
+.card-hd{padding:14px 18px;border-bottom:1px solid var(--hair);display:flex;align-items:center;justify-content:space-between;gap:12px;background:rgba(255,255,255,.01)}
+.card-hd .k{font:400 11px 'JetBrains Mono',monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--t-muted)}
+.card-hd .k b{color:var(--primary);font-weight:400}
+.card-bd{padding:18px;flex:1;display:flex;flex-direction:column;gap:14px}
+.card-t{margin:0;color:#fff;font-weight:400;font-size:17px;letter-spacing:-.02em;line-height:1.3}
+.card-s{margin:-8px 0 0;font-size:13px;line-height:1.55;color:var(--t-body);font-weight:300}
+.gbtn{appearance:none;cursor:pointer;border:1px solid var(--hair);background:var(--ghost);color:var(--t-body);border-radius:6px;padding:4px 8px;font:400 10px 'JetBrains Mono',monospace;letter-spacing:.12em;text-transform:uppercase;transition:.2s}
+.gbtn:hover{background:rgba(255,255,255,.1);color:#fff}
+.gbtn[aria-pressed="true"]{background:rgba(99,102,241,.1);border-color:rgba(99,102,241,.3);color:var(--primary-400)}
+
+/* chips de filtro (DS · Filter chips) */
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.flabel{font:400 10px 'JetBrains Mono',monospace;letter-spacing:.18em;color:var(--t-faint);text-transform:uppercase;margin-right:2px}
+.chip{appearance:none;cursor:pointer;border:0;border-radius:9999px;padding:7px 14px;font:500 12px 'Inter',sans-serif;background:rgba(255,255,255,.12);color:rgba(255,255,255,.7);transition:.2s}
+.chip:hover{background:rgba(255,255,255,.18);color:#fff}
+.chip.on{background:var(--lime);color:#000}
+.sep{width:1px;height:20px;background:var(--divider);margin:0 6px}
+
+/* KPI / stat tile */
+.kpi{display:flex;flex-direction:column;gap:6px}
+.kpi .v{font-size:clamp(26px,2.6vw,34px);font-weight:400;letter-spacing:-.04em;color:#fff;line-height:1}
+.kpi .v small{font-size:.5em;color:var(--t-muted);letter-spacing:0;margin-left:4px}
+.kpi .d{font-size:12px;line-height:1.5;color:var(--t-body);font-weight:300}
+.badge{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;padding:2px 8px;border-radius:4px;border:1px solid rgba(99,102,241,.2);background:rgba(99,102,241,.1);font:400 10px 'JetBrains Mono',monospace;color:#fff;letter-spacing:.14em;text-transform:uppercase}
+.badge.ok{border-color:rgba(52,211,153,.25);background:rgba(16,185,129,.1);color:var(--ok)}
+.badge.crit{border-color:rgba(251,113,133,.3);background:rgba(251,113,133,.1);color:var(--crit)}
+.badge.warn{border-color:rgba(251,191,36,.3);background:rgba(251,191,36,.1);color:var(--warn)}
+
+/* meters (DS · Meters) */
+.meter{display:flex;flex-direction:column;gap:7px}
+.meter .row{display:flex;justify-content:space-between;align-items:flex-end;font:400 11px 'JetBrains Mono',monospace;letter-spacing:.06em}
+.meter .row span:first-child{color:var(--t-body);text-transform:uppercase}
+.meter .row span:last-child{color:#fff}
+.meter .tr{height:4px;background:#000;border-radius:9999px;border:1px solid var(--hair);position:relative;overflow:hidden}
+.meter .tr i{position:absolute;inset:0 auto 0 0;border-radius:9999px;background:var(--primary);box-shadow:0 0 8px var(--glow-strong)}
+.meter .tr i.n{background:#71717a;box-shadow:none}
+
+/* insight */
+.insight{display:flex;gap:12px;align-items:flex-start;padding:14px;border-radius:12px;background:var(--canvas);border:1px solid var(--line)}
+.insight .n{flex:none;width:26px;height:26px;border-radius:50%;background:#000;border:1px solid var(--hair);display:grid;place-items:center;font:400 11px 'JetBrains Mono',monospace;color:var(--primary-400)}
+.insight p{margin:0;font-size:13.5px;line-height:1.6;color:var(--t-strong);font-weight:300}
+.insight p b{color:#fff;font-weight:500}
+.story{border-left:2px solid var(--primary);padding:4px 0 4px 16px;font-size:15px;line-height:1.7;color:var(--t-strong);font-weight:300;margin:0}
+.story b{color:#fff;font-weight:500}
+.link{appearance:none;cursor:pointer;border:0;background:none;padding:0;color:var(--primary-400);font:400 11px 'JetBrains Mono',monospace;letter-spacing:.14em;text-transform:uppercase}
+.link:hover{color:#fff}
+
+/* charts */
+.chart{position:relative;width:100%;min-height:120px}
+.chart svg{display:block;width:100%;overflow:visible}
+.chart text{font-family:'JetBrains Mono',monospace;font-size:10px;fill:var(--t-muted)}
+.chart text.val{fill:var(--t-strong)}
+.chart text.lbl{font-family:'Inter',sans-serif;font-size:11.5px;fill:var(--t-body)}
+.chart .hit{fill:transparent;cursor:crosshair}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--t-body)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.legend i.ln{height:2px;border-radius:2px}
+.tt{position:fixed;z-index:100;pointer-events:none;min-width:140px;max-width:260px;padding:10px 12px;border-radius:12px;background:rgba(15,15,17,.96);border:1px solid var(--line-strong);
+  box-shadow:0 20px 40px -10px #000;font-size:12px;line-height:1.5;color:var(--t-strong);opacity:0;transition:opacity .12s}
+.tt .h{font:400 10px 'JetBrains Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--t-muted);margin-bottom:4px}
+.tt .r{display:flex;justify-content:space-between;gap:14px}
+.tt .r b{color:#fff;font-weight:500;font-family:'JetBrains Mono',monospace;font-size:11.5px}
+.tt .sw{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px;vertical-align:middle}
+
+/* tabela (alternativa acessível) */
+.tbl{display:none;max-height:340px;overflow:auto;border:1px solid var(--line);border-radius:12px;background:var(--canvas)}
+.tbl.on{display:block}
+.tbl table{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{position:sticky;top:0;background:var(--panel);text-align:left;font:400 10px 'JetBrains Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--t-muted);padding:9px 12px;border-bottom:1px solid var(--line)}
+.tbl td{padding:8px 12px;border-bottom:1px solid var(--hair);color:var(--t-strong)}
+.tbl td.num,.tbl th.num{text-align:right;font-family:'JetBrains Mono',monospace}
+.tbl tr:hover td{background:rgba(255,255,255,.03)}
+.has-tbl.show-tbl .chart,.has-tbl.show-tbl .legend{display:none}
+
+.section{display:none;animation:fade .45s ease}
+.section.on{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.gap{height:16px}
+footer{margin-top:56px;padding-top:24px;border-top:1px solid var(--divider);display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;font-size:12px;color:var(--t-muted)}
+footer .mono{letter-spacing:.14em;text-transform:uppercase;font-size:10px}
+.dot-ok{display:inline-flex;align-items:center;gap:8px}
+.dot-ok i{width:6px;height:6px;border-radius:50%;background:var(--ok-dot);box-shadow:0 0 8px rgba(16,185,129,.8);animation:pulse 2s infinite}
+.mtable{width:100%;border-collapse:collapse;font-size:13px}
+.mtable th{font:400 10px 'JetBrains Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--t-muted);text-align:right;padding:8px 10px;border-bottom:1px solid var(--line)}
+.mtable th:first-child,.mtable td:first-child{text-align:left}
+.mtable td{padding:10px;border-bottom:1px solid var(--hair);text-align:right;font-family:'JetBrains Mono',monospace;color:var(--t-strong)}
+.mtable td:first-child{font-family:'Inter',sans-serif}
+.mtable tr.best td{color:#fff;background:rgba(99,102,241,.08)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="bg-bloom"></div><div class="bg-dots"></div>
+
+<header class="nav">
+  <div class="nav-pill">
+    <div class="brand">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 12h2l2-6 3 12 3-9 2 5 2-2h4"/></svg>
+      <b>OLIST.DATA</b><span class="mono">DESAFIO FINAL · HARVE</span>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Temas do dashboard" id="tabs"></nav>
+  </div>
+</header>
+
+<main class="wrap" id="app"></main>
+<div class="tt" id="tt" role="tooltip"></div>
+
+<script>
+const D = /*__DATA__*/;
+</script>
+<script>
+/* ======================================================= utilidades */
+const $ = (s, r = document) => r.querySelector(s);
+const nf = (v, d = 0) => v == null ? '—' : Number(v).toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
+const brl = (v, d = 0) => 'R$ ' + nf(v, d);
+const brlK = v => Math.abs(v) >= 1e6 ? 'R$ ' + nf(v / 1e6, 2) + ' mi' : Math.abs(v) >= 1e3 ? 'R$ ' + nf(v / 1e3, 0) + ' mil' : brl(v);
+const kfmt = v => Math.abs(v) >= 1e6 ? nf(v / 1e6, 1) + ' mi' : Math.abs(v) >= 1e3 ? nf(v / 1e3, v >= 1e4 ? 0 : 1) + ' mil' : nf(v);
+const MES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+const ym = s => { const [y, m] = s.split('-'); return MES[+m - 1] + '/' + y.slice(2); };
+const cat = s => s.replace(/_/g, ' ');
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = { s1: '#818cf8', s2: '#78a91a', s3: '#d65ce8', prim: '#6366F1', ok: '#34d399', warn: '#fbbf24', crit: '#fb7185', mute: '#52525b', mute2: '#3f3f46' };
+// divergente para notas 1→5: fúcsia (ruim) · cinza neutro · índigo (bom)
+const NOTA = ['#d65ce8', '#9b5aa6', '#71717a', '#6f73d6', '#818cf8'];
+const NS = 'http://www.w3.org/2000/svg';
+function el(tag, attrs = {}, parent) { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
+function h(html) { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; }
+function niceTicks(max, n = 4) {
+  if (max <= 0) return [0, 1];
+  const raw = max / n, p = Math.pow(10, Math.floor(Math.log10(raw))), m = raw / p;
+  const step = (m < 1.5 ? 1 : m < 3 ? 2 : m < 7 ? 5 : 10) * p; const t = [];
+  for (let v = 0; v <= max + step * .001; v += step) t.push(+v.toFixed(10));
+  if (t[t.length - 1] < max) t.push(+(t[t.length - 1] + step).toFixed(10));
+  return t;
+}
+/* tooltip */
+const TT = $('#tt');
+function tip(e, head, rows) {
+  TT.innerHTML = `<div class="h">${head}</div>` + rows.map(r => `<div class="r"><span>${r[2] ? `<i class="sw" style="background:${r[2]}"></i>` : ''}${r[0]}</span><b>${r[1]}</b></div>`).join('');
+  TT.style.opacity = 1; const w = TT.offsetWidth, hh = TT.offsetHeight;
+  let x = e.clientX + 14, y = e.clientY + 14;
+  if (x + w > innerWidth - 8) x = e.clientX - w - 14; if (y + hh > innerHeight - 8) y = e.clientY - hh - 14;
+  TT.style.left = x + 'px'; TT.style.top = y + 'px';
+}
+function untip() { TT.style.opacity = 0; }
+/* barra com topo arredondado de 4px ancorada na base */
+function barPath(x, y, w, hgt, r = 4, horiz = false) {
+  if (hgt <= 0 || w <= 0) return '';
+  if (!horiz) { r = Math.min(r, w / 2, hgt); return `M${x},${y + hgt}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + hgt}Z`; }
+  r = Math.min(r, hgt / 2, w); return `M${x},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + hgt - r}Q${x + w},${y + hgt} ${x + w - r},${y + hgt}H${x}Z`;
+}
+const REG = []; // gráficos registrados para re-render no resize
+function mount(node, fn) { REG.push({ node, fn }); fn(node); }
+let rT; addEventListener('resize', () => { clearTimeout(rT); rT = setTimeout(() => REG.forEach(r => r.node.isConnected && r.node.offsetParent && r.fn(r.node)), 120); });
+
+/* ======================================================= gráficos (SVG puro) */
+// colunas verticais
+function barV(node, o) {
+  node.innerHTML = ''; const W = node.clientWidth || 600, H = o.h || 240, m = { t: 18, r: 8, b: o.rot ? 46 : 26, l: 48 };
+  const s = el('svg', { viewBox: `0 0 ${W} ${H}`, height: H }, node); const iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const max = o.max || Math.max(...o.values) * 1.08, ticks = niceTicks(max), top = ticks[ticks.length - 1];
+  const yS = v => m.t + ih - v / top * ih;
+  ticks.forEach(t => { el('line', { x1: m.l, x2: W - m.r, y1: yS(t), y2: yS(t), stroke: t ? 'rgba(255,255,255,.06)' : '#3f3f46' }, s); el('text', { x: m.l - 8, y: yS(t) + 3, 'text-anchor': 'end' }, s).textContent = (o.yFmt || kfmt)(t); });
+  const n = o.values.length, bw = iw / n, gap = Math.max(2, Math.min(bw * .28, 14));
+  const autoEv = Math.ceil(n / Math.max(2, Math.floor(iw / (o.rot ? 34 : 58)))); const every = o.allX ? 1 : Math.max(o.every || 1, autoEv);
+  o.values.forEach((v, i) => {
+    const x = m.l + i * bw + gap / 2, w = bw - gap, y = yS(v), col = o.color ? o.color(i, v) : C.s1;
+    const p = el('path', { d: barPath(x, y, w, m.t + ih - y), fill: col, opacity: o.dim && o.dim(i) ? .35 : 1 }, s);
+    if (o.label && o.label(i)) { el('text', { x: x + w / 2, y: y - 6, 'text-anchor': 'middle', class: 'val' }, s).textContent = o.label(i); }
+    if (i % every === 0 || o.allX) { const t = el('text', { x: x + w / 2, y: H - m.b + 15, 'text-anchor': o.rot ? 'end' : 'middle', transform: o.rot ? `rotate(-40 ${x + w / 2} ${H - m.b + 15})` : '' }, s); t.textContent = o.labels[i]; }
+    const hit = el('rect', { x: m.l + i * bw, y: m.t, width: bw, height: ih, class: 'hit' }, s);
+    hit.addEventListener('mousemove', e => { p.setAttribute('opacity', .75); tip(e, o.labels[i], o.tip ? o.tip(i) : [['Valor', (o.yFmt || kfmt)(v)]]); });
+    hit.addEventListener('mouseleave', () => { p.setAttribute('opacity', o.dim && o.dim(i) ? .35 : 1); untip(); });
+  });
+  (o.refs || []).forEach(r => { const x = m.l + r.x * bw; el('line', { x1: x, x2: x, y1: m.t - 4, y2: m.t + ih, stroke: r.c, 'stroke-width': 1.5, 'stroke-dasharray': '4 3' }, s);
+    const t = el('text', { x: x + 5, y: m.t + 6 + (r.dy || 0), class: 'val', fill: r.c }, s); t.textContent = r.t; t.style.fill = r.c; });
+}
+// barras horizontais
+function barH(node, o) {
+  node.innerHTML = ''; const W = node.clientWidth || 600, rh = o.rh || 26, lw = o.lw || Math.min(190, W * .38), n = o.values.length;
+  const H = n * rh + 8, s = el('svg', { viewBox: `0 0 ${W} ${H}`, height: H }, node), vw = 74, iw = W - lw - vw - 6;
+  const max = o.max || Math.max(...o.values);
+  o.values.forEach((v, i) => {
+    const y = i * rh + 4, bh = Math.min(14, rh - 8), w = Math.max(2, v / max * iw), col = o.color ? o.color(i) : C.s1;
+    const t = el('text', { x: lw - 10, y: y + rh / 2 - 1, 'text-anchor': 'end', class: 'lbl' }, s); t.textContent = o.labels[i];
+    el('rect', { x: lw, y: y + (rh - bh) / 2 - 4, width: iw, height: bh, rx: 4, fill: 'rgba(255,255,255,.025)' }, s);
+    const p = el('path', { d: barPath(lw, y + (rh - bh) / 2 - 4, w, bh, 4, true), fill: col }, s);
+    el('text', { x: lw + w + 8, y: y + rh / 2 - 1, class: 'val' }, s).textContent = (o.fmt || kfmt)(v);
+    const hit = el('rect', { x: 0, y, width: W, height: rh, class: 'hit' }, s);
+    hit.addEventListener('mousemove', e => { p.setAttribute('opacity', .75); tip(e, o.labels[i], o.tip ? o.tip(i) : [['Valor', (o.fmt || kfmt)(v)]]); });
+    hit.addEventListener('mouseleave', () => { p.setAttribute('opacity', 1); untip(); });
+  });
+}
+// barras horizontais agrupadas (2 séries)
+function barH2(node, o) {
+  node.innerHTML = ''; const W = node.clientWidth || 600, rh = 30, lw = 40, n = o.labels.length, H = n * rh + 6;
+  const s = el('svg', { viewBox: `0 0 ${W} ${H}`, height: H }, node), vw = 54, iw = W - lw - vw;
+  const max = Math.max(...o.a, ...o.b);
+  o.labels.forEach((lab, i) => {
+    const y = i * rh + 3; el('text', { x: lw - 10, y: y + 15, 'text-anchor': 'end', class: 'lbl' }, s).textContent = lab;
+    [[o.a[i], C.s1, 0], [o.b[i], C.s2, 1]].forEach(([v, c, k]) => {
+      const w = Math.max(2, v / max * iw), yy = y + 3 + k * 12; el('path', { d: barPath(lw, yy, w, 10, 4, true), fill: c }, s);
+      el('text', { x: lw + w + 6, y: yy + 8.5, class: 'val' }, s).textContent = nf(v, 1) + '%';
+    });
+    const hit = el('rect', { x: 0, y, width: W, height: rh, class: 'hit' }, s);
+    hit.addEventListener('mousemove', e => tip(e, lab, o.tip(i))); hit.addEventListener('mouseleave', untip);
+  });
+}
+// linhas com crosshair
+function lineC(node, o) {
+  node.innerHTML = ''; const W = node.clientWidth || 600, H = o.h || 240, m = { t: 16, r: 14, b: 26, l: 48 };
+  const s = el('svg', { viewBox: `0 0 ${W} ${H}`, height: H }, node), iw = W - m.l - m.r, ih = H - m.t - m.b, n = o.labels.length;
+  const all = o.series.flatMap(x => x.values).filter(v => v != null);
+  const mn = o.min != null ? o.min : 0, mx = o.max || Math.max(...all) * 1.08;
+  const ticks = o.ticks || niceTicks(mx - mn).map(t => t + mn), top = ticks[ticks.length - 1];
+  const xS = i => m.l + (n === 1 ? iw / 2 : i / (n - 1) * iw), yS = v => m.t + ih - (v - mn) / (top - mn) * ih;
+  ticks.forEach(t => { el('line', { x1: m.l, x2: W - m.r, y1: yS(t), y2: yS(t), stroke: t === mn ? '#3f3f46' : 'rgba(255,255,255,.06)' }, s); el('text', { x: m.l - 8, y: yS(t) + 3, 'text-anchor': 'end' }, s).textContent = (o.yFmt || kfmt)(t); });
+  const every = Math.ceil(n / Math.max(3, Math.floor(iw / 62)));
+  o.labels.forEach((l, i) => { if (i % every === 0 || i === n - 1 && n < 14) el('text', { x: xS(i), y: H - 8, 'text-anchor': 'middle' }, s).textContent = l; });
+  (o.bands || []).forEach(b => { el('rect', { x: xS(b.from) - 4, y: m.t, width: xS(b.to) - xS(b.from) + 8, height: ih, fill: b.c || 'rgba(99,102,241,.07)', rx: 6 }, s); });
+  (o.vref || []).forEach(r => { el('line', { x1: xS(r.i), x2: xS(r.i), y1: m.t, y2: m.t + ih, stroke: r.c, 'stroke-dasharray': '4 3', 'stroke-width': 1.5 }, s); const t = el('text', { x: xS(r.i) + 6, y: m.t + 10, class: 'val' }, s); t.textContent = r.t; t.style.fill = r.c; });
+  o.series.forEach(sr => {
+    let d = ''; sr.values.forEach((v, i) => { if (v == null) return; d += (d ? 'L' : 'M') + xS(i) + ',' + yS(v); });
+    if (o.area && o.series.length === 1) { const g = el('linearGradient', { id: 'g' + node.id, x1: 0, x2: 0, y1: 0, y2: 1 }, el('defs', {}, s)); el('stop', { offset: 0, 'stop-color': sr.color, 'stop-opacity': .28 }, g); el('stop', { offset: 1, 'stop-color': sr.color, 'stop-opacity': 0 }, g);
+      el('path', { d: d + `L${xS(n - 1)},${m.t + ih}L${xS(0)},${m.t + ih}Z`, fill: `url(#g${node.id})` }, s); }
+    el('path', { d, fill: 'none', stroke: sr.color, 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }, s);
+    if (o.dots) sr.values.forEach((v, i) => v != null && el('circle', { cx: xS(i), cy: yS(v), r: 4, fill: sr.color, stroke: '#18181b', 'stroke-width': 2 }, s));
+  });
+  const cross = el('line', { y1: m.t, y2: m.t + ih, stroke: '#71717a', 'stroke-width': 1, opacity: 0 }, s);
+  const dots = o.series.map(sr => el('circle', { r: 5, fill: sr.color, stroke: '#18181b', 'stroke-width': 2, opacity: 0 }, s));
+  const hit = el('rect', { x: m.l, y: m.t, width: iw, height: ih, class: 'hit' }, s);
+  hit.addEventListener('mousemove', e => {
+    const r = s.getBoundingClientRect(), px = (e.clientX - r.left) * (W / r.width); const i = Math.max(0, Math.min(n - 1, Math.round((px - m.l) / iw * (n - 1))));
+    cross.setAttribute('x1', xS(i)); cross.setAttribute('x2', xS(i)); cross.setAttribute('opacity', 1);
+    o.series.forEach((sr, k) => { const v = sr.values[i]; if (v == null) { dots[k].setAttribute('opacity', 0); return; } dots[k].setAttribute('cx', xS(i)); dots[k].setAttribute('cy', yS(v)); dots[k].setAttribute('opacity', 1); });
+    tip(e, o.full ? o.full[i] : o.labels[i], o.tip ? o.tip(i) : o.series.map(sr => [sr.name, (o.yFmt || kfmt)(sr.values[i]), sr.color]));
+  });
+  hit.addEventListener('mouseleave', () => { cross.setAttribute('opacity', 0); dots.forEach(d => d.setAttribute('opacity', 0)); untip(); });
+}
+// dispersão
+function scatter(node, o) {
+  node.innerHTML = ''; const W = node.clientWidth || 600, H = o.h || 280, m = { t: 12, r: 14, b: 38, l: 52 };
+  const s = el('svg', { viewBox: `0 0 ${W} ${H}`, height: H }, node), iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const lx = v => o.xLog ? Math.log10(Math.max(v, o.xMin)) : v, ly = v => o.yLog ? Math.log10(Math.max(v, o.yMin)) : v;
+  const x0 = lx(o.xMin), x1 = lx(o.xMax), y0 = ly(o.yMin), y1 = ly(o.yMax);
+  const xS = v => m.l + (lx(v) - x0) / (x1 - x0) * iw, yS = v => m.t + ih - (ly(v) - y0) / (y1 - y0) * ih;
+  o.xTicks.forEach(t => { el('line', { x1: xS(t), x2: xS(t), y1: m.t, y2: m.t + ih, stroke: 'rgba(255,255,255,.04)' }, s); el('text', { x: xS(t), y: m.t + ih + 15, 'text-anchor': 'middle' }, s).textContent = (o.xFmt || nf)(t); });
+  o.yTicks.forEach(t => { el('line', { x1: m.l, x2: W - m.r, y1: yS(t), y2: yS(t), stroke: 'rgba(255,255,255,.06)' }, s); el('text', { x: m.l - 8, y: yS(t) + 3, 'text-anchor': 'end' }, s).textContent = (o.yFmt || nf)(t); });
+  el('text', { x: m.l + iw / 2, y: H - 4, 'text-anchor': 'middle' }, s).textContent = o.xLabel;
+  const yl = el('text', { x: 12, y: m.t + ih / 2, 'text-anchor': 'middle', transform: `rotate(-90 12 ${m.t + ih / 2})` }, s); yl.textContent = o.yLabel;
+  if (o.diag) el('line', { x1: xS(o.xMin), y1: yS(o.yMin), x2: xS(Math.min(o.xMax, o.yMax)), y2: yS(Math.min(o.xMax, o.yMax)), stroke: C.crit, 'stroke-dasharray': '5 4', 'stroke-width': 1.5 }, s);
+  const g = el('g', {}, s);
+  o.pts.forEach((p, i) => {
+    if (p[0] < o.xMin || p[0] > o.xMax || p[1] < o.yMin || p[1] > o.yMax) return;
+    const c = el('circle', { cx: xS(p[0]), cy: yS(p[1]), r: o.r || 2.5, fill: o.color ? o.color(i) : C.s1, 'fill-opacity': o.alpha || .45, stroke: o.ring ? '#18181b' : 'none', 'stroke-width': o.ring ? 1.5 : 0 }, g);
+    if (o.tip) { c.style.cursor = 'pointer'; c.addEventListener('mousemove', e => { c.setAttribute('r', (o.r || 2.5) + 3); tip(e, ...o.tip(i)); }); c.addEventListener('mouseleave', () => { c.setAttribute('r', o.r || 2.5); untip(); }); }
+    if (o.lab && o.lab(i)) { const t = el('text', { x: xS(p[0]) + 9, y: yS(p[1]) + 3, class: 'val' }, s); t.textContent = o.lab(i); }
+  });
+}
+// histograma
+function hist(node, o) {
+  barV(node, { h: o.h || 240, labels: o.labels, values: o.values, color: o.color, every: o.every, refs: o.refs, yFmt: kfmt, tip: o.tip });
+}
+// heatmap de correlação
+function heat(node, o) {
+  node.innerHTML = ''; const n = o.cols.length, W = Math.min(node.clientWidth || 400, 420), lw = 60, cs = (W - lw) / n, H = cs * n + 24;
+  const s = el('svg', { viewBox: `0 0 ${W} ${H}`, height: H, style: `max-width:${W}px` }, node);
+  o.m.forEach((row, i) => row.forEach((v, j) => {
+    const a = Math.abs(v); const r = el('rect', { x: lw + j * cs + 1, y: i * cs + 1, width: cs - 2, height: cs - 2, rx: 6, fill: `rgba(129,140,248,${.06 + a * .9})` }, s);
+    const t = el('text', { x: lw + j * cs + cs / 2, y: i * cs + cs / 2 + 4, 'text-anchor': 'middle', class: 'val' }, s); t.textContent = nf(v, 2); t.style.fill = a > .55 ? '#0a0a0a' : '#d4d4d8'; t.style.fontSize = '11px';
+    r.addEventListener('mousemove', e => tip(e, o.cols[i] + ' × ' + o.cols[j], [['Pearson', nf(v, 2)]])); r.addEventListener('mouseleave', untip);
+  }));
+  o.cols.forEach((c, i) => { el('text', { x: lw - 8, y: i * cs + cs / 2 + 4, 'text-anchor': 'end', class: 'lbl' }, s).textContent = c; el('text', { x: lw + i * cs + cs / 2, y: H - 6, 'text-anchor': 'middle', class: 'lbl' }, s).textContent = c; });
+}
+// barra 100% empilhada (linhas)
+function stack100(node, o) {
+  node.innerHTML = ''; const W = node.clientWidth || 600, rh = 40, lw = 96, H = o.rows.length * rh + 4, iw = W - lw - 4;
+  const s = el('svg', { viewBox: `0 0 ${W} ${H}`, height: H }, node);
+  o.rows.forEach((r, i) => {
+    const y = i * rh + 8; el('text', { x: lw - 10, y: y + 15, 'text-anchor': 'end', class: 'lbl' }, s).textContent = r.label; let x = lw;
+    r.parts.forEach((p, k) => {
+      const w = p / 100 * iw; if (w <= 0) return; const rr = el('rect', { x: x + 1, y, width: Math.max(0, w - 2), height: 22, rx: 4, fill: o.colors[k] }, s);
+      if (w > 34) { const t = el('text', { x: x + w / 2, y: y + 15, 'text-anchor': 'middle' }, s); t.textContent = nf(p, 0) + '%'; t.style.fill = k >= 3 || k === 0 ? '#0a0a0a' : '#f4f4f5'; t.style.fontSize = '10px'; }
+      rr.addEventListener('mousemove', e => tip(e, r.label, o.names.map((nm, q) => [nm, nf(r.parts[q], 1) + '%', o.colors[q]])));
+      rr.addEventListener('mouseleave', untip); x += w;
+    });
+  });
+}
+
+/* ======================================================= componentes */
+function card({ k, idx, title, sub, cls = 'c6', feat, body, table, extra }) {
+  const c = h(`<article class="card ${feat ? 'feat' : ''} ${cls}"><div class="card-in ${table ? 'has-tbl' : ''}">
+    <div class="card-hd"><span class="k">${idx ? `<b>${idx}</b> · ` : ''}${k}</span>${table ? `<button class="gbtn" aria-pressed="false" title="Alternar visualização em tabela">Tabela</button>` : (extra || '')}</div>
+    <div class="card-bd">${title ? `<h3 class="card-t">${title}</h3>` : ''}${sub ? `<p class="card-s">${sub}</p>` : ''}</div></div></article>`);
+  const bd = c.querySelector('.card-bd'); if (body) (Array.isArray(body) ? body : [body]).forEach(b => bd.appendChild(typeof b === 'string' ? h(b) : b));
+  if (table) {
+    const tb = h('<div class="tbl"></div>'); bd.appendChild(tb); const btn = c.querySelector('.gbtn');
+    const fill = () => { const t = typeof table === 'function' ? table() : table; tb.innerHTML = `<table><thead><tr>${t.cols.map((x, i) => `<th class="${i ? 'num' : ''}">${x}</th>`).join('')}</tr></thead><tbody>${t.rows.map(r => `<tr>${r.map((x, i) => `<td class="${i ? 'num' : ''}">${x}</td>`).join('')}</tr>`).join('')}</tbody></table>`; };
+    btn.addEventListener('click', () => { const on = btn.getAttribute('aria-pressed') !== 'true'; btn.setAttribute('aria-pressed', on); c.querySelector('.card-in').classList.toggle('show-tbl', on); tb.classList.toggle('on', on); if (on) fill(); });
+    c._refreshTable = () => { if (tb.classList.contains('on')) fill(); };
+  }
+  return c;
+}
+const chartDiv = id => h(`<div class="chart" id="${id}"></div>`);
+const legend = items => `<div class="legend">${items.map(([n, c, ln]) => `<span><i class="${ln ? 'ln' : ''}" style="background:${c}"></i>${n}</span>`).join('')}</div>`;
+const kpi = (k, v, d, badge, idx, feat) => card({ k, idx, cls: 'c3', feat, body: `<div class="kpi"><div class="v">${v}</div>${badge || ''}<div class="d">${d}</div></div>` });
+function chips(label, opts, cur, onChange) {
+  const w = h(`<div class="filters" role="group" aria-label="${label}"><span class="flabel">${label}</span></div>`);
+  opts.forEach(([val, txt]) => { const b = h(`<button class="chip ${val === cur ? 'on' : ''}" aria-pressed="${val === cur}">${txt}</button>`);
+    b.addEventListener('click', () => { w.querySelectorAll('.chip').forEach(x => { x.classList.remove('on'); x.setAttribute('aria-pressed', false); }); b.classList.add('on'); b.setAttribute('aria-pressed', true); onChange(val); }); w.appendChild(b); });
+  return w;
+}
+function hero(eyebrow, title, lead, tags) {
+  return h(`<div class="hero"><span class="eyebrow"><i></i>${eyebrow}</span><h1>${title}</h1><p class="lead">${lead}</p>${tags ? `<div class="qtag">${tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>` : ''}</div>`);
+}
+const meter = (label, pct, val, neutral) => `<div class="meter"><div class="row"><span>${label}</span><span>${val}</span></div><div class="tr"><i class="${neutral ? 'n' : ''}" style="width:${Math.min(100, pct)}%"></i></div></div>`;
+const grid = (...cards) => { const g = h('<div class="grid"></div>'); cards.forEach(c => g.appendChild(c)); return g; };
+const spacer = () => h('<div class="gap"></div>');
+
+/* ======================================================= temas */
+const THEMES = [
+  ['overview', 'Visão geral'], ['vendas', 'Vendas'], ['logistica', 'Logística'], ['satisfacao', 'Satisfação'],
+  ['produtos', 'Produtos'], ['frete', 'Frete & Modelo'], ['geo', 'Geografia']
+];
+const SECTIONS = {};
+const meses = D.d2.meses, comp = meses.filter(m => m.completo);
+const st = Object.fromEntries(D.d4.status.map(s => [s.s, s]));
+const M = D.d7.modelo, best = M.modelos.find(x => x.n === 'Random Forest'), lin = M.modelos.find(x => x.n === 'Regressão Linear');
+const SP = D.d7.estados.find(e => e.uf === 'SP');
+
+/* ---------------- VISÃO GERAL */
+SECTIONS.overview = sec => {
+  sec.appendChild(hero('Olist · ' + ym(D.kpi.inicio.slice(0, 7)) + ' → ' + ym(D.kpi.fim.slice(0, 7)),
+    'Um mar de dados, <em>sete perguntas</em> e uma história.',
+    `Análise de ${nf(D.kpi.pedidos)} pedidos do marketplace Olist para entender vendas, prazos de entrega, satisfação, produtos, frete e geografia. Cada tema abaixo responde a um ou mais desafios do projeto — navegue pelas abas.`,
+    ['7 desafios', '9 tabelas', 'pandas · scikit-learn']));
+  sec.appendChild(grid(
+    kpi('Pedidos', nf(D.kpi.pedidos), `${nf(D.kpi.clientes)} clientes únicos · ${nf(D.kpi.itens)} itens`, '', '01', true),
+    kpi('Receita paga', brlK(D.kpi.receita), `Ticket médio de <b style="color:#fff">${brl(D.kpi.ticket, 2)}</b> por pedido`, '', '02'),
+    kpi('Entrega mediana', nf(D.d1.mediana, 1) + '<small>dias</small>', `Da aprovação à entrega · média ${nf(D.d1.media, 1)} dias`, '', '03'),
+    kpi('Nota média', nf(D.d3.media, 2) + '<small>/ 5</small>', `${nf(D.d3.grupos.Satisfeito.pct, 1)}% dos clientes satisfeitos (nota 4–5)`, '', '04')
+  ));
+  sec.appendChild(spacer());
+  const spark = chartDiv('ov-spark');
+  sec.appendChild(grid(
+    card({ k: 'Pedidos por mês', idx: 'D2', cls: 'c8', title: 'Crescimento acelerado em 2017, platô em 2018', sub: 'Meses completos. O pico de novembro/2017 coincide com a Black Friday.', body: [spark] }),
+    card({ k: 'Saúde da operação', cls: 'c4', body: [
+      meter('Entregas antes do prazo', st.Adiantado.pct, nf(st.Adiantado.pct, 1) + '%'),
+      meter('Clientes satisfeitos', D.d3.grupos.Satisfeito.pct, nf(D.d3.grupos.Satisfeito.pct, 1) + '%'),
+      meter('Avaliações com comentário', D.d3.pct_com, nf(D.d3.pct_com, 1) + '%', true),
+      meter('Itens nas top 10 categorias', D.d5.pct_top10, nf(D.d5.pct_top10, 1) + '%', true),
+      meter('Vendedores em SP', SP.pvend, nf(SP.pvend, 1) + '%', true),
+      meter('Frete explicado pelo modelo (R²)', best.r2 * 100, nf(best.r2, 2))
+    ] })
+  ));
+  mount(spark, n => lineC(n, { h: 230, area: true, labels: comp.map(m => ym(m.m)), series: [{ name: 'Pedidos', values: comp.map(m => m.pedidos), color: C.s1 }],
+    tip: i => [['Pedidos', nf(comp[i].pedidos)], ['Receita', brlK(comp[i].receita)]] }));
+  sec.appendChild(spacer());
+  const ins = [
+    ['vendas', `O mês recorde é <b>novembro/2017</b> em pedidos e em receita: só no dia 24 (Black Friday) foram <b>${nf(D.d2.pico.n)} pedidos</b>, ${nf(D.d2.pico.n / D.d2.pico.media_outros, 1)}× um dia comum.`],
+    ['logistica', `Um pedido típico chega em <b>${nf(D.d1.mediana, 1)} dias</b>. A Olist promete prazos folgados: <b>${nf(st.Adiantado.pct, 1)}%</b> chegam antes, em média ${nf(D.d4.antecipacao_media, 0)} dias de antecedência.`],
+    ['logistica', `<b>Atraso derruba a nota</b>: de ${nf(st.Adiantado.nota, 2)} (adiantado) para <b>${nf(st.Atrasado.nota, 2)}</b> (atrasado). ${nf(st.Atrasado.insat, 0)}% dos atrasados ficam insatisfeitos.`],
+    ['satisfacao', `Notas em "U": ${nf(D.d3.notas[4].pct, 1)}% dão 5 e ${nf(D.d3.notas[0].pct, 1)}% dão 1. Quem está <b>insatisfeito fala mais</b> — ${nf(D.d3.grupos.Insatisfeito.pct_com, 0)}% comentam.`],
+    ['produtos', `Preço e quantidade de fotos <b>não explicam</b> o volume de vendas (correlações ≈ 0). As top 10 categorias concentram <b>${nf(D.d5.pct_top10, 0)}%</b> dos itens.`],
+    ['frete', `O frete acompanha <b>peso</b> e <b>volume</b> (r ≈ ${nf(D.d6.corr.m[0][1], 1)}) e a <b>distância</b> até o cliente. O Random Forest prevê o frete com erro médio de <b>${brl(best.mae, 2)}</b> (R² ${nf(best.r2, 2)}).`],
+    ['geo', `Mercado concentrado no Sudeste: <b>SP tem ${nf(SP.pcli, 0)}% dos clientes e ${nf(SP.pvend, 0)}% dos vendedores</b> — quem está longe paga mais frete e espera mais.`]
+  ];
+  const box = h('<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:10px"></div>');
+  ins.forEach(([t, txt], i) => { const r = h(`<div class="insight"><span class="n">0${i + 1}</span><div style="display:flex;flex-direction:column;gap:8px"><p>${txt}</p><button class="link" style="align-self:flex-start">Ver ${THEMES.find(x => x[0] === t)[1]} →</button></div></div>`); r.querySelector('.link').onclick = () => go(t); box.appendChild(r); });
+  sec.appendChild(grid(card({ k: 'Storytelling · principais achados', cls: 'c12', body: [box] })));
+};
+
+/* ---------------- VENDAS (D2) */
+SECTIONS.vendas = sec => {
+  sec.appendChild(hero('Tema · Vendas · Desafio 2', 'Novembro/2017 é o <em>mês recorde</em> — e a Black Friday explica.',
+    'Pedidos contados em olist_orders por mês de compra; pagamentos somados de olist_order_payments e ligados ao mês do pedido. Meses com menos de 100 pedidos (início e fim da base) ficam fora da comparação por padrão.',
+    ['order_purchase_timestamp → período', 'groupby · sum · count', 'IQR para outliers']));
+  const best = comp.reduce((a, b) => b.pedidos > a.pedidos ? b : a), bestR = comp.reduce((a, b) => b.receita > a.receita ? b : a);
+  sec.appendChild(grid(
+    kpi('Mês com mais pedidos', ym(best.m), `${nf(best.pedidos)} pedidos · média mensal ${nf(comp.reduce((s, m) => s + m.pedidos, 0) / comp.length)}`, '<span class="badge">Black Friday</span>', '', true),
+    kpi('Mês com mais pagamentos', ym(bestR.m), `${brl(bestR.receita)} pagos no mês`),
+    kpi('Pico diário', nf(D.d2.pico.n), `pedidos em ${D.d2.pico.dia}/11/2017 — ${nf(D.d2.pico.n / D.d2.pico.media_outros, 1)}× a média dos outros dias`),
+    kpi('Ticket médio', brl(D.kpi.ticket, 2), 'Pagamento médio por pedido em toda a base')
+  ));
+  sec.appendChild(spacer());
+  let metric = 'pedidos', per = 'all', onlyComp = true;
+  const ch = chartDiv('v-mes'); const FM = { pedidos: ['Pedidos', nf], receita: ['Receita (R$)', brlK], ticket: ['Ticket médio (R$)', v => brl(v, 2)] };
+  const rows = () => meses.filter(m => (!onlyComp || m.completo) && (per === 'all' || m.m.startsWith(per)));
+  const draw = () => { const r = rows(); const mxi = r.reduce((b, m, i) => m[metric] > r[b][metric] ? i : b, 0);
+    barV(ch, { h: 280, labels: r.map(m => ym(m.m)), values: r.map(m => m[metric]), yFmt: metric === 'pedidos' ? kfmt : v => metric === 'ticket' ? 'R$' + nf(v) : brlK(v).replace('R$ ', ''),
+      color: () => C.s1, dim: i => i !== mxi, label: i => i === mxi ? FM[metric][1](r[i][metric]) : '',
+      tip: i => [['Pedidos', nf(r[i].pedidos)], ['Receita', brl(r[i].receita)], ['Ticket médio', brl(r[i].ticket, 2)], ['Mês completo', r[i].completo ? 'sim' : 'não']] });
+    c1._refreshTable && c1._refreshTable(); };
+  const f = h('<div class="filters" style="gap:14px"></div>');
+  f.appendChild(chips('Métrica', [['pedidos', 'Pedidos'], ['receita', 'Receita'], ['ticket', 'Ticket médio']], metric, v => { metric = v; draw(); }));
+  f.appendChild(chips('Período', [['all', 'Tudo'], ['2017', '2017'], ['2018', '2018']], per, v => { per = v; draw(); }));
+  const tg = h('<button class="gbtn" aria-pressed="true">Só meses completos</button>'); tg.onclick = () => { onlyComp = !onlyComp; tg.setAttribute('aria-pressed', onlyComp); draw(); }; f.appendChild(tg);
+  const c1 = card({ k: 'Série mensal', idx: 'D2', cls: 'c12', title: 'Vendas por mês', sub: 'Escolha a métrica e o período. A barra destacada é o máximo do recorte.', body: [f, ch],
+    table: () => ({ cols: ['Mês', 'Pedidos', 'Receita', 'Ticket'], rows: rows().map(m => [ym(m.m), nf(m.pedidos), brl(m.receita), brl(m.ticket, 2)]) }) });
+  sec.appendChild(grid(c1)); mount(ch, draw);
+  sec.appendChild(spacer());
+  const bf = chartDiv('v-bf'), tp = chartDiv('v-tipo');
+  const TN = { credit_card: 'Cartão de crédito', boleto: 'Boleto', voucher: 'Voucher', debit_card: 'Cartão de débito', not_defined: 'Não definido' };
+  sec.appendChild(grid(
+    card({ k: 'Novembro/2017 por dia', idx: 'D2', cls: 'c8', title: `24/11: ${nf(D.d2.pico.n)} pedidos em um único dia`, sub: 'A Black Friday concentra o pico que torna novembro o maior mês da série.', body: [bf],
+      table: { cols: ['Dia', 'Pedidos'], rows: D.d2.nov2017.map(x => [x.d + '/11', nf(x.n)]) } }),
+    card({ k: 'Formas de pagamento', cls: 'c4', title: 'Cartão de crédito domina', sub: 'Quantidade de transações por tipo.', body: [tp],
+      table: { cols: ['Tipo', 'Transações', 'Valor'], rows: D.d2.tipos.map(t => [TN[t.t] || t.t, nf(t.n), brl(t.valor)]) } })
+  ));
+  mount(bf, n => barV(n, { h: 240, labels: D.d2.nov2017.map(x => String(x.d)), values: D.d2.nov2017.map(x => x.n), color: i => D.d2.nov2017[i].d === D.d2.pico.dia ? C.prim : C.mute2,
+    label: i => D.d2.nov2017[i].d === D.d2.pico.dia ? nf(D.d2.pico.n) : '', every: 2, tip: i => [['Pedidos', nf(D.d2.nov2017[i].n)]] }));
+  const tipos = D.d2.tipos.filter(t => t.t !== 'not_defined'), tot = tipos.reduce((s, t) => s + t.n, 0);
+  mount(tp, n => barH(n, { labels: tipos.map(t => TN[t.t]), values: tipos.map(t => t.n), lw: 120, fmt: kfmt, color: i => i === 0 ? C.s1 : C.mute,
+    tip: i => [['Transações', nf(tipos[i].n)], ['Participação', nf(tipos[i].n / tot * 100, 1) + '%'], ['Valor', brlK(tipos[i].valor)]] }));
+  sec.appendChild(spacer());
+  const O = D.d2.outliers, ON = { payment_value: 'Pagamento', price: 'Preço do item', freight_value: 'Frete' };
+  const otab = `<table class="mtable"><thead><tr><th>Variável</th><th>Q1</th><th>Mediana</th><th>Q3</th><th>Limite sup.</th><th>Outliers</th><th>Máximo</th></tr></thead><tbody>${Object.entries(O).map(([k, o]) => `<tr><td>${ON[k]}</td><td>${brl(o.q1, 2)}</td><td>${brl(o.mediana, 2)}</td><td>${brl(o.q3, 2)}</td><td>${brl(o.lim, 2)}</td><td>${nf(o.pct, 1)}%</td><td>${brl(o.max, 0)}</td></tr>`).join('')}</tbody></table>`;
+  sec.appendChild(grid(card({ k: 'Outliers · método IQR', idx: 'D2', cls: 'c12', title: 'Distribuições assimétricas, mas os outliers são compras reais', sub: 'A maioria dos valores é baixa e poucos são muito altos. Decisão: manter na análise e apenas sinalizar.', body: [`<div style="overflow-x:auto">${otab}</div>`] })));
+};
+
+/* ---------------- LOGÍSTICA (D1 + D4) */
+SECTIONS.logistica = sec => {
+  sec.appendChild(hero('Tema · Logística · Desafios 1 e 4', 'Entrega típica em <em>~10 dias</em> — e o atraso custa caro na nota.',
+    'Tempo entre order_approved_at e order_delivered_customer_date (somente pedidos entregues e com as duas datas). Depois, a data real é comparada com order_estimated_delivery_date e cruzada com a nota da avaliação.',
+    ['to_datetime', 'feature engineering: dias_diferenca', 'merge orders × reviews']));
+  sec.appendChild(grid(
+    kpi('Mediana', nf(D.d1.mediana, 2) + '<small>dias</small>', 'Melhor resposta: a distribuição tem cauda longa à direita', '', 'D1', true),
+    kpi('Média', nf(D.d1.media, 2) + '<small>dias</small>', `Puxada por casos extremos (máx. ${nf(D.d1.maximo)} dias)`, '', 'D1'),
+    kpi('Atrasados', nf(st.Atrasado.pct, 1) + '<small>%</small>', `${nf(st.Atrasado.n)} pedidos entregues depois do prazo`, '<span class="badge crit">Atenção</span>', 'D4'),
+    kpi('Correlação atraso × nota', nf(D.d4.corr, 2), 'Negativa: quanto maior o atraso, menor a nota', '', 'D4')
+  ));
+  sec.appendChild(spacer());
+  const hi = chartDiv('l-hist'); const labs = D.d1.hist.map((_, i) => i + '–' + (i + 1) + ' d');
+  sec.appendChild(grid(
+    card({ k: 'Distribuição do tempo de entrega', idx: 'D1', cls: 'c8', title: 'Metade dos pedidos chega em menos de 10 dias', sub: `Histograma até 60 dias (a última barra acumula 60+). ${nf(D.d1.mais30)} pedidos (${nf(D.d1.mais30 / D.d1.validos * 100, 1)}%) levaram mais de 30 dias.`,
+      body: [legend([['Mediana', '#bef264', 1], ['Média', C.crit, 1]]), hi],
+      table: { cols: ['Faixa', 'Pedidos'], rows: D.d1.hist.map((v, i) => [labs[i], nf(v)]) } }),
+    card({ k: 'Percentis', idx: 'D1', cls: 'c4', body: [
+      meter('25% chegam em até', D.d1.p25 / 30 * 100, nf(D.d1.p25, 1) + ' dias', true), meter('50% (mediana)', D.d1.mediana / 30 * 100, nf(D.d1.mediana, 1) + ' dias'),
+      meter('75% chegam em até', D.d1.p75 / 30 * 100, nf(D.d1.p75, 1) + ' dias', true), meter('90% chegam em até', D.d1.p90 / 30 * 100, nf(D.d1.p90, 1) + ' dias', true),
+      meter('95% chegam em até', D.d1.p95 / 30 * 100, nf(D.d1.p95, 1) + ' dias', true),
+      `<p class="card-s" style="margin:4px 0 0">Qualidade dos dados: ${nf(D.d1.negativos)} pedidos com tempo negativo (entrega antes da aprovação) foram removidos. Base final: ${nf(D.d1.validos)} pedidos.</p>`] })
+  ));
+  mount(hi, n => barV(n, { h: 250, labels: labs, values: D.d1.hist, every: 5, color: i => i === 59 ? C.mute : C.s1, yFmt: kfmt,
+    refs: [{ x: D.d1.mediana, c: '#bef264', t: 'mediana ' + nf(D.d1.mediana, 1) }, { x: D.d1.media, c: C.crit, t: 'média ' + nf(D.d1.media, 1), dy: 14 }],
+    tip: i => [['Pedidos', nf(D.d1.hist[i])], ['% do total', nf(D.d1.hist[i] / D.d1.validos * 100, 2) + '%']] }));
+  sec.appendChild(spacer());
+  // status
+  const SC = { Adiantado: C.ok, 'No prazo': C.warn, Atrasado: C.crit }, SI = { Adiantado: '↓', 'No prazo': '=', Atrasado: '↑' };
+  const stBox = h('<div style="display:flex;flex-direction:column;gap:12px"></div>');
+  D.d4.status.forEach(s => stBox.appendChild(h(`<div class="insight" style="align-items:center"><span class="n" style="color:${SC[s.s]}">${SI[s.s]}</span><div style="flex:1;display:flex;justify-content:space-between;align-items:center;gap:10px">
+    <div><div style="color:#fff;font-size:14px">${s.s}</div><div class="mono" style="font-size:10px;letter-spacing:.1em;color:var(--t-muted)">${nf(s.pct, 1)}% DOS PEDIDOS · ${nf(s.n)}</div></div>
+    <div style="text-align:right"><div style="color:#fff;font-size:22px;letter-spacing:-.03em">${nf(s.nota, 2)}</div><div class="mono" style="font-size:10px;color:${SC[s.s]};letter-spacing:.08em">${nf(s.insat, 1)}% INSATISF.</div></div></div></div>`)));
+  const dist = chartDiv('l-dist');
+  sec.appendChild(grid(
+    card({ k: 'Status da entrega × nota', idx: 'D4', cls: 'c5', title: 'Pontualidade e nota média', sub: `A Olist é conservadora: em média, a entrega chega ${nf(D.d4.antecipacao_media, 1)} dias antes do prazo estimado.`, body: [stBox] }),
+    card({ k: 'Distribuição das notas', idx: 'D4', cls: 'c7', title: `Entre os atrasados, ${nf(st.Atrasado.dist[0], 0)}% dão nota 1`, sub: 'Participação de cada nota (1 a 5) dentro de cada grupo de entrega.',
+      body: [legend(NOTA.map((c, i) => ['Nota ' + (i + 1), c])), dist], table: { cols: ['Status', 'Nota 1', 'Nota 2', 'Nota 3', 'Nota 4', 'Nota 5'], rows: D.d4.status.map(s => [s.s, ...s.dist.map(x => nf(x, 1) + '%')]) } })
+  ));
+  mount(dist, n => stack100(n, { rows: D.d4.status.map(s => ({ label: s.s, parts: s.dist })), colors: NOTA, names: [1, 2, 3, 4, 5].map(x => 'Nota ' + x) }));
+  sec.appendChild(spacer());
+  const fx = chartDiv('l-fx'), mm = chartDiv('l-mm'); const F = D.d4.faixas;
+  const mens = D.d4.mensal; let mmMetric = 'atraso';
+  const mmDraw = n => lineC(n, { h: 240, dots: true, labels: mens.map(m => ym(m.m)), series: [{ name: mmMetric === 'atraso' ? '% atrasados' : 'Nota média', values: mens.map(m => m[mmMetric]), color: mmMetric === 'atraso' ? C.s3 : C.s1 }],
+    min: mmMetric === 'nota' ? 3.4 : 0, max: mmMetric === 'nota' ? 4.6 : undefined, ticks: mmMetric === 'nota' ? [3.4, 3.8, 4.2, 4.6] : undefined, yFmt: mmMetric === 'atraso' ? v => nf(v) + '%' : v => nf(v, 1),
+    tip: i => [['% atrasados', nf(mens[i].atraso, 1) + '%', C.s3], ['Nota média', nf(mens[i].nota, 2), C.s1]] });
+  sec.appendChild(grid(
+    card({ k: 'Nota por faixa de dias', idx: 'D4', cls: 'c6', title: 'A nota despenca logo nos primeiros dias de atraso', sub: 'Antes do prazo a nota é estável (~4,2–4,3). Com 1–3 dias de atraso cai para ~3,3; com 8+ dias fica abaixo de 1,7.', body: [fx],
+      table: { cols: ['Faixa', 'Nota média', 'Pedidos'], rows: F.map(x => [x.f, nf(x.nota, 2), nf(x.n)]) } }),
+    card({ k: 'Evolução mensal', idx: 'D4', cls: 'c6', title: 'Quando o atraso sobe, a nota cai', sub: 'Meses completos. Fev–mar/2018 e nov/2017 tiveram mais atrasos — e notas mais baixas.',
+      body: [chips('Ver', [['atraso', '% atrasados'], ['nota', 'Nota média']], 'atraso', v => { mmMetric = v; mmDraw(mm); }), mm] })
+  ));
+  mount(fx, n => lineC(n, { h: 250, dots: true, labels: F.map(x => x.f.replace(' atraso', ' atr.').replace(' antes', ' ant.')), full: F.map(x => x.f), series: [{ name: 'Nota média', values: F.map(x => x.nota), color: C.s1 }],
+    min: 1, max: 5, ticks: [1, 2, 3, 4, 5], yFmt: v => nf(v, 0), vref: [{ i: 3, c: C.crit, t: 'prazo' }], tip: i => [['Nota média', nf(F[i].nota, 2)], ['Pedidos', nf(F[i].n)]] }));
+  mount(mm, mmDraw);
+};
+
+/* ---------------- SATISFAÇÃO (D3) */
+SECTIONS.satisfacao = sec => {
+  const G = D.d3.grupos, N = D.d3.notas;
+  sec.appendChild(hero('Tema · Satisfação · Desafio 3', 'Três em cada quatro clientes estão <em>satisfeitos</em>.',
+    'Notas de 1 a 5 da olist_order_reviews. Nulos em título e comentário significam "cliente não escreveu" — não são erro; viraram as colunas tem_comentario e tem_titulo.',
+    ['review_score', 'faixas 1–2 / 3 / 4–5', 'tratamento de nulos']));
+  sec.appendChild(grid(
+    kpi('Nota média', nf(D.d3.media, 2), `Mediana ${D.d3.mediana} · ${nf(D.d3.total)} avaliações`, '', '', true),
+    kpi('Satisfeitos', nf(G.Satisfeito.pct, 1) + '<small>%</small>', 'Notas 4 e 5', '<span class="badge ok">✓ Maioria</span>'),
+    kpi('Insatisfeitos', nf(G.Insatisfeito.pct, 1) + '<small>%</small>', `Notas 1 e 2 · neutros: ${nf(G.Neutro.pct, 1)}%`, '<span class="badge crit">! Foco</span>'),
+    kpi('Com comentário', nf(D.d3.pct_com, 1) + '<small>%</small>', `Só ${nf(D.d3.pct_tit, 1)}% escrevem título — a maioria só dá a nota`)
+  ));
+  sec.appendChild(spacer());
+  const dn = chartDiv('s-dist'), cm = chartDiv('s-com');
+  sec.appendChild(grid(
+    card({ k: 'Distribuição das notas', idx: 'D3', cls: 'c6', title: 'Padrão em "U": extremos dominam', sub: 'Quando algo dá errado, o cliente vai direto para a nota 1 — pouca nota 2 e 3.', body: [dn],
+      table: { cols: ['Nota', 'Avaliações', '%'], rows: N.map(x => [x.nota, nf(x.n), nf(x.pct, 1) + '%']) } }),
+    card({ k: 'Quem comenta', idx: 'D3', cls: 'c6', title: 'Quanto pior a nota, mais o cliente escreve', sub: '% de avaliações com comentário em cada nota.', body: [cm],
+      table: { cols: ['Nota', '% com comentário', 'Tamanho mediano'], rows: N.map(x => [x.nota, nf(x.pct_com, 1) + '%', nf(x.tam) + ' caract.']) } })
+  ));
+  mount(dn, n => barV(n, { h: 250, labels: N.map(x => 'Nota ' + x.nota), values: N.map(x => x.pct), allX: true, color: i => NOTA[i], yFmt: v => nf(v) + '%', label: i => nf(N[i].pct, 1) + '%', tip: i => [['Avaliações', nf(N[i].n)], ['Participação', nf(N[i].pct, 1) + '%']] }));
+  mount(cm, n => barV(n, { h: 250, labels: N.map(x => 'Nota ' + x.nota), values: N.map(x => x.pct_com), max: 100, allX: true, color: i => NOTA[i], yFmt: v => nf(v) + '%', label: i => nf(N[i].pct_com, 0) + '%', tip: i => [['Com comentário', nf(N[i].pct_com, 1) + '%'], ['Tamanho mediano', nf(N[i].tam) + ' caract.']] }));
+  sec.appendChild(spacer());
+  const tm = chartDiv('s-tam');
+  sec.appendChild(grid(
+    card({ k: 'Tamanho dos comentários', idx: 'D3', cls: 'c6', title: 'Insatisfeitos escrevem textos ~2× maiores', sub: 'Mediana de caracteres por comentário, por nota.', body: [tm] }),
+    card({ k: 'Grupos de satisfação', idx: 'D3', cls: 'c6', feat: true, body: [
+      meter('Satisfeitos · comentam', G.Satisfeito.pct_com, nf(G.Satisfeito.pct_com, 1) + '%', true),
+      meter('Neutros · comentam', G.Neutro.pct_com, nf(G.Neutro.pct_com, 1) + '%', true),
+      meter('Insatisfeitos · comentam', G.Insatisfeito.pct_com, nf(G.Insatisfeito.pct_com, 1) + '%'),
+      `<p class="story">Os ${nf(G.Insatisfeito.pct, 0)}% insatisfeitos são os que mais falam: <b>3 em cada 4 deixam comentário</b>, com textos duas vezes maiores. Os comentários são a fonte mais rica para entender os problemas.</p>`,
+      `<p class="card-s" style="margin:0">Ponto de atenção: ${nf(D.d3.dup_review)} review_id e ${nf(D.d3.dup_order)} order_id repetidos — tratados (mantida a avaliação mais recente) antes dos merges.</p>`] })
+  ));
+  mount(tm, n => barH(n, { labels: N.map(x => 'Nota ' + x.nota), values: N.map(x => x.tam), lw: 70, rh: 34, color: i => NOTA[i], fmt: v => nf(v) + ' caract.' }));
+};
+
+/* ---------------- PRODUTOS (D5) */
+SECTIONS.produtos = sec => {
+  const CT = D.d5.categorias;
+  sec.appendChild(hero('Tema · Produtos · Desafio 5', 'Preço e fotos <em>não explicam</em> o que vende.',
+    'olist_order_items (cada linha = 1 item vendido) cruzada com olist_products. Categorias nulas viraram "sem_categoria". Correlações calculadas por categoria (preço) e por produto (fotos).',
+    [`${D.d5.n_cat} categorias`, 'merge items × products', 'get_dummies']));
+  sec.appendChild(grid(
+    kpi('Categoria líder', cat(CT[0].c), `${nf(CT[0].q)} itens vendidos`, '', '', true),
+    kpi('Concentração', nf(D.d5.pct_top10, 1) + '<small>%</small>', 'dos itens estão nas 10 categorias mais vendidas'),
+    kpi('Preço × vendas', nf(D.d5.pearson, 2), `Pearson por categoria · Spearman ${nf(D.d5.spearman, 2)} → relação praticamente nula`),
+    kpi('Fotos × vendas', nf(D.d5.fotos_corr.pearson, 3), `Pearson por produto · mediana de ${D.d5.fotos_corr.mediana} foto por produto`)
+  ));
+  sec.appendChild(spacer());
+  let side = 'top', met = 'q', sortBy = 'q';
+  const rk = chartDiv('p-rank'); const MF = { q: ['Itens vendidos', nf], rec: ['Receita', brlK], pm: ['Preço médio', v => brl(v, 2)] };
+  const sel = () => { const s = [...CT].sort((a, b) => b.q - a.q); const r = side === 'top' ? s.slice(0, 15) : s.slice(-15).reverse(); return r; };
+  const drawR = n => { const r = sel(); barH(n, { labels: r.map(x => cat(x.c)), values: r.map(x => x[met]), fmt: MF[met][1], lw: 200, color: () => side === 'top' ? C.s1 : C.s3,
+    tip: i => [['Itens', nf(r[i].q)], ['Receita', brl(r[i].rec)], ['Preço médio', brl(r[i].pm, 2)], ['Frete médio', brl(r[i].frete, 2)]] }); cR._refreshTable && cR._refreshTable(); };
+  const fr = h('<div class="filters" style="gap:14px"></div>');
+  fr.appendChild(chips('Ranking', [['top', '15 mais vendidas'], ['bottom', '15 menos vendidas']], side, v => { side = v; drawR(rk); }));
+  fr.appendChild(chips('Exibir', [['q', 'Itens'], ['rec', 'Receita'], ['pm', 'Preço médio']], met, v => { met = v; drawR(rk); }));
+  const cR = card({ k: 'Ranking de categorias', idx: 'D5', cls: 'c7', title: 'Mais e menos vendidas', sub: 'Ordem sempre por itens vendidos; troque a métrica exibida para comparar receita e preço.', body: [fr, rk],
+    table: () => ({ cols: ['Categoria', 'Itens', 'Receita', 'Preço médio'], rows: sel().map(x => [cat(x.c), nf(x.q), brl(x.rec), brl(x.pm, 2)]) }) });
+  const sc = chartDiv('p-sc');
+  const top5 = new Set([...CT].sort((a, b) => b.q - a.q).slice(0, 5).map(x => x.c).concat(['relogios_presentes']));
+  sec.appendChild(grid(cR, card({ k: 'Preço médio × itens vendidos', idx: 'D5', cls: 'c5', title: 'Sem padrão claro entre preço e volume', sub: 'Cada ponto é uma categoria (escalas log). Passe o mouse para ver o nome.', body: [sc] })));
+  mount(rk, drawR);
+  mount(sc, n => scatter(n, { h: 380, pts: CT.map(x => [x.pm, x.q]), xLog: true, yLog: true, xMin: 20, xMax: 1500, yMin: 1, yMax: 20000, r: 5, alpha: .8, ring: true,
+    xTicks: [20, 50, 100, 200, 500, 1000], yTicks: [1, 10, 100, 1000, 10000], xFmt: v => 'R$' + nf(v), yFmt: kfmt, xLabel: 'Preço médio (R$, log)', yLabel: 'Itens vendidos (log)',
+    color: i => top5.has(CT[i].c) ? C.prim : '#a1a1aa', lab: i => ['cama_mesa_banho', 'relogios_presentes'].includes(CT[i].c) ? cat(CT[i].c) : '',
+    tip: i => [cat(CT[i].c), [['Itens', nf(CT[i].q)], ['Preço médio', brl(CT[i].pm, 2)], ['Receita', brlK(CT[i].rec)]]] }));
+  sec.appendChild(spacer());
+  const fp = chartDiv('p-fp'), ft = chartDiv('p-ft');
+  sec.appendChild(grid(
+    card({ k: 'Itens por faixa de preço', idx: 'D5', cls: 'c6', title: `~${nf(D.d5.faixas_preco[0].pct + D.d5.faixas_preco[1].pct, 0)}% dos itens custam até R$ 100`, sub: 'O marketplace vende principalmente produtos baratos; só ~3% passam de R$ 500.', body: [fp],
+      table: { cols: ['Faixa', '% dos itens'], rows: D.d5.faixas_preco.map(x => [x.f, nf(x.pct, 1) + '%']) } }),
+    card({ k: 'Fotos × vendas', idx: 'D5', cls: 'c6', title: 'Mais fotos não significam mais vendas', sub: 'Média de itens vendidos por produto, conforme a quantidade de fotos do anúncio.', body: [ft],
+      table: { cols: ['Fotos', 'Vendas médias/produto', 'Produtos'], rows: D.d5.fotos.map(x => [x.f, nf(x.media, 2), nf(x.n)]) } })
+  ));
+  mount(fp, n => barV(n, { h: 240, labels: D.d5.faixas_preco.map(x => x.f), values: D.d5.faixas_preco.map(x => x.pct), allX: true, yFmt: v => nf(v) + '%', label: i => nf(D.d5.faixas_preco[i].pct, 1) + '%' }));
+  mount(ft, n => barV(n, { h: 240, labels: D.d5.fotos.map(x => x.f), values: D.d5.fotos.map(x => x.media), allX: true, max: 5, yFmt: v => nf(v, 0), label: i => nf(D.d5.fotos[i].media, 2), color: () => C.mute,
+    tip: i => [['Vendas médias', nf(D.d5.fotos[i].media, 2)], ['Produtos', nf(D.d5.fotos[i].n)]] }));
+};
+
+/* ---------------- FRETE & MODELO (D6 + D7B) */
+SECTIONS.frete = sec => {
+  const F6 = D.d6;
+  sec.appendChild(hero('Tema · Frete & Modelo · Desafios 6 e 7', 'Tamanho do produto e distância <em>formam o frete</em> — e dá para prever.',
+    'Volume = altura × largura × comprimento; peso em kg. Depois, a distância cliente–vendedor (fórmula de Haversine sobre os CEPs) entra num modelo de regressão para prever freight_value.',
+    ['volume_cm3 · peso_kg', 'Haversine', 'LinearRegression · RandomForest', 'cross_val_score']));
+  sec.appendChild(grid(
+    kpi('Frete × peso', nf(F6.corr.m[0][1], 2), 'Correlação de Pearson — a variável do produto que mais explica o frete', '', 'D6', true),
+    kpi('Frete × volume', nf(F6.corr.m[0][2], 2), `Peso e volume são muito correlacionados entre si (${nf(F6.corr.m[1][2], 2)})`, '', 'D6'),
+    kpi('Erro médio (MAE)', brl(best.mae, 2), `Random Forest no teste · baseline erra ${brl(M.modelos[0].mae, 2)}`, '<span class="badge">Modelo escolhido</span>', 'D7'),
+    kpi('R² no teste', nf(best.r2, 3), `Regressão linear: ${nf(lin.r2, 3)} · sem distância: ${nf(M.modelos[1].r2, 3)}`, '', 'D7')
+  ));
+  sec.appendChild(spacer());
+  let dim = 'peso'; const fb = chartDiv('f-fx');
+  const dims = { peso: [F6.peso, 'Frete médio por faixa de peso'], volume: [F6.volume, 'Frete médio por quintil de volume'], dist: [M.frete_dist, 'Frete médio por distância cliente–vendedor'] };
+  const fDraw = n => { const r = dims[dim][0]; barV(n, { h: 260, labels: r.map(x => x.f), values: r.map(x => x.media), allX: true, yFmt: v => 'R$' + nf(v), label: i => brl(r[i].media, 2), color: i => i === r.length - 1 ? C.prim : C.s1,
+    tip: i => [['Frete médio', brl(r[i].media, 2)], ...(r[i].mediana ? [['Frete mediano', brl(r[i].mediana, 2)]] : []), ['Itens', nf(r[i].n)]] }); cF._refreshTable && cF._refreshTable(); $('#f-fx-t').textContent = dims[dim][1]; };
+  const cF = card({ k: 'Frete por faixa', idx: 'D6', cls: 'c7', body: [`<h3 class="card-t" id="f-fx-t"></h3>`, `<p class="card-s">Até ~2 kg o frete sobe pouco; a partir de 5 kg dispara. Itens acima de 10 kg pagam ~3,6× mais que os de até 0,5 kg.</p>`,
+    chips('Dimensão', [['peso', 'Peso'], ['volume', 'Volume'], ['dist', 'Distância']], dim, v => { dim = v; fDraw(fb); }), fb],
+    table: () => ({ cols: ['Faixa', 'Frete médio', 'Itens'], rows: dims[dim][0].map(x => [x.f, brl(x.media, 2), nf(x.n)]) }) });
+  const hm = chartDiv('f-heat');
+  sec.appendChild(grid(cF, card({ k: 'Matriz de correlação', idx: 'D6', cls: 'c5', title: 'Quem anda junto com o frete', sub: 'Pearson entre frete, peso, volume e preço do item.', body: [hm] })));
+  mount(fb, fDraw); mount(hm, n => heat(n, F6.corr));
+  sec.appendChild(spacer());
+  const sp = chartDiv('f-sp');
+  sec.appendChild(grid(card({ k: 'Frete × peso · amostra de 1.500 itens', idx: 'D6', cls: 'c12', title: 'Relação crescente, mas com muita dispersão', sub: 'Para o mesmo peso o frete varia bastante — a distância entre cliente e vendedor explica parte dessa diferença (por isso entra no modelo).', body: [sp] })));
+  mount(sp, n => scatter(n, { h: 300, pts: F6.amostra.map(p => [p[0], p[1]]), xMin: 0, xMax: 30, yMin: 0, yMax: 200, xTicks: [0, 5, 10, 15, 20, 25, 30], yTicks: [0, 50, 100, 150, 200], xFmt: v => nf(v) + ' kg', yFmt: v => 'R$' + nf(v), xLabel: 'Peso (kg)', yLabel: 'Frete (R$)', alpha: .35, r: 3 }));
+  sec.appendChild(spacer());
+  // modelos
+  const mt = `<table class="mtable"><thead><tr><th>Modelo</th><th>MAE</th><th>RMSE</th><th>R²</th></tr></thead><tbody>${M.modelos.map(x => `<tr class="${x.n === 'Random Forest' ? 'best' : ''}"><td>${x.n}${x.n === 'Random Forest' ? ' <span class="badge" style="margin-left:6px">escolhido</span>' : ''}</td><td>${brl(x.mae, 2)}</td><td>${brl(x.rmse, 2)}</td><td>${nf(Math.abs(x.r2) < 0.0005 ? 0 : x.r2, 3)}</td></tr>`).join('')}</tbody></table>`;
+  const mae = chartDiv('f-mae'), imp = chartDiv('f-imp');
+  const ov = M.overfit, cvm = a => a.reduce((s, x) => s + x, 0) / a.length, cvs = a => { const m = cvm(a); return Math.sqrt(a.reduce((s, x) => s + (x - m) ** 2, 0) / a.length); };
+  sec.appendChild(grid(
+    card({ k: 'Comparação dos modelos · teste', idx: 'D7', cls: 'c7', feat: true, title: 'Random Forest erra ~53% menos que o baseline', sub: `Treino ${nf(M.treino)} · teste ${nf(M.teste)} linhas (80/20, random_state=42). Incluir a distância levou a regressão linear de R² ${nf(M.modelos[1].r2, 2)} para ${nf(lin.r2, 2)}.`,
+      body: [`<div style="overflow-x:auto">${mt}</div>`, mae] }),
+    card({ k: 'Validação', idx: 'D7', cls: 'c5', body: [
+      `<h3 class="card-t">Overfitting e validação cruzada</h3>`,
+      meter('Linear · R² treino', ov.lin_tr * 100, nf(ov.lin_tr, 3), true), meter('Linear · R² teste', ov.lin_te * 100, nf(ov.lin_te, 3), true),
+      meter('Random Forest · R² treino', ov.rf_tr * 100, nf(ov.rf_tr, 3)), meter('Random Forest · R² teste', ov.rf_te * 100, nf(ov.rf_te, 3)),
+      `<p class="card-s" style="margin:0">Linear sem overfitting; Random Forest com leve overfitting, mas ainda bem acima no teste. Validação cruzada (5 divisões, R²): linear <b style="color:#fff">${nf(cvm(M.cv.lin), 3)} ± ${nf(cvs(M.cv.lin), 3)}</b> · RF <b style="color:#fff">${nf(cvm(M.cv.rf), 3)} ± ${nf(cvs(M.cv.rf), 3)}</b> — estável.</p>`,
+      `<div class="card-hd" style="padding:10px 0 0;border:0;background:none"><span class="k">Importância das variáveis · RF</span></div>`, imp] })
+  ));
+  mount(mae, n => barH(n, { labels: M.modelos.map(x => x.n), values: M.modelos.map(x => x.mae), lw: 150, rh: 30, fmt: v => 'MAE ' + brl(v, 2), color: i => M.modelos[i].n === 'Random Forest' ? C.prim : C.mute }));
+  const VN = { peso_kg: 'Peso', volume_cm3: 'Volume', price: 'Preço', distancia_km: 'Distância' };
+  mount(imp, n => barH(n, { labels: M.importancia.map(x => VN[x.v]), values: M.importancia.map(x => x.i * 100), lw: 80, rh: 28, max: 100, fmt: v => nf(v, 1) + '%', color: i => i === 0 ? C.s1 : C.mute }));
+  sec.appendChild(spacer());
+  const rp = chartDiv('f-rp'), rs = chartDiv('f-res');
+  sec.appendChild(grid(
+    card({ k: 'Real × previsto · Random Forest', idx: 'D7', cls: 'c6', title: 'Pontos perto da diagonal = boa previsão', sub: 'Amostra de 1.200 itens do conjunto de teste. A linha tracejada é a previsão perfeita.', body: [rp] }),
+    card({ k: 'Distribuição dos erros', idx: 'D7', cls: 'c6', title: 'Erros concentrados perto de zero', sub: 'Resíduo = frete real − previsto (R$). Valores além de ±40 acumulados nas pontas.', body: [rs] })
+  ));
+  mount(rp, n => scatter(n, { h: 300, pts: M.real_prev, xMin: 0, xMax: 120, yMin: 0, yMax: 120, xTicks: [0, 30, 60, 90, 120], yTicks: [0, 30, 60, 90, 120], xFmt: v => 'R$' + nf(v), yFmt: v => 'R$' + nf(v), xLabel: 'Frete real', yLabel: 'Frete previsto', diag: true, alpha: .35, r: 3 }));
+  mount(rs, n => barV(n, { h: 300, labels: M.resid.map((_, i) => (i - 20) * 2 + ''), values: M.resid, every: 5, color: i => i === 19 || i === 20 ? C.prim : C.s1, tip: i => [['Faixa de erro', 'R$ ' + ((i - 20) * 2) + ' a ' + ((i - 19) * 2)], ['Itens', nf(M.resid[i])]] }));
+};
+
+/* ---------------- GEOGRAFIA (D7A) */
+SECTIONS.geo = sec => {
+  const E = D.d7.estados;
+  sec.appendChild(hero('Tema · Geografia · Desafio 7', 'Clientes no Sudeste, <em>vendedores ainda mais</em> concentrados em SP.',
+    'Clientes (olist_customers) e vendedores (olist_sellers) agrupados por estado e cidade. O mapa usa os prefixos de CEP da olist_geolocation (média das coordenadas por CEP, apenas pontos dentro do Brasil).',
+    ['zip_code_prefix → lat/lng', 'nunique de clientes', 'mapa por coordenadas']));
+  const sud = ['SP', 'RJ', 'MG'].reduce((s, u) => s + E.find(e => e.uf === u).pcli, 0);
+  sec.appendChild(grid(
+    kpi('Clientes em SP', nf(SP.pcli, 1) + '<small>%</small>', `${nf(SP.cli)} clientes únicos`, '', '', true),
+    kpi('Vendedores em SP', nf(SP.pvend, 1) + '<small>%</small>', '6 em cada 10 vendedores estão em São Paulo'),
+    kpi('SP + RJ + MG', nf(sud, 1) + '<small>%</small>', 'dos clientes estão em apenas 3 estados'),
+    kpi('Distância mediana', nf(M.dist_mediana) + '<small>km</small>', 'entre cliente e vendedor de cada item')
+  ));
+  sec.appendChild(spacer());
+  let layer = 'ambos'; const mp = chartDiv('g-map');
+  const drawMap = n => {
+    const pts = layer === 'cli' ? D.d7.pts_cli.map(p => [...p, 0]) : layer === 'vend' ? D.d7.pts_vend.map(p => [...p, 1]) : D.d7.pts_cli.map(p => [...p, 0]).concat(D.d7.pts_vend.map(p => [...p, 1]));
+    const W = Math.min(n.clientWidth || 500, 560);
+    scatter(n, { h: Math.round(W * 1.0), pts: pts.map(p => [p[0], p[1]]), xMin: -74, xMax: -34, yMin: -34, yMax: 5.5, xTicks: [-70, -60, -50, -40], yTicks: [-30, -20, -10, 0], xFmt: v => nf(v) + '°', yFmt: v => nf(v) + '°',
+      xLabel: 'Longitude', yLabel: 'Latitude', r: 2, color: i => pts[i][2] ? C.s2 : C.s1, alpha: layer === 'ambos' ? .4 : .5 });
+    n.querySelector('svg').style.maxWidth = W + 'px'; n.querySelector('svg').style.margin = '0 auto';
+  };
+  const cM = card({ k: 'Mapa · CEPs geolocalizados', idx: 'D7', cls: 'c6', title: 'Litoral Sul/Sudeste concentra o mercado', sub: `Amostra de ${nf(D.d7.pts_cli.length)} clientes e todos os ${nf(D.d7.pts_vend.length)} vendedores com coordenadas.`,
+    body: [chips('Camada', [['ambos', 'Ambos'], ['cli', 'Clientes'], ['vend', 'Vendedores']], layer, v => { layer = v; drawMap(mp); }), legend([['Clientes', C.s1], ['Vendedores', C.s2]]), mp] });
+  const top = [...E].sort((a, b) => b.cli - a.cli).slice(0, 12), sb = chartDiv('g-uf');
+  const cS = card({ k: 'Participação por estado · top 12', idx: 'D7', cls: 'c6', title: 'Vendedores mais concentrados que clientes', sub: '% do total de clientes únicos e do total de vendedores em cada estado.',
+    body: [legend([['% dos clientes', C.s1], ['% dos vendedores', C.s2]]), sb], table: { cols: ['UF', 'Clientes', '% cli.', 'Vendedores', '% vend.'], rows: [...E].sort((a, b) => b.cli - a.cli).map(e => [e.uf, nf(e.cli), nf(e.pcli, 1) + '%', nf(e.vend), nf(e.pvend, 1) + '%']) } });
+  sec.appendChild(grid(cM, cS));
+  mount(mp, drawMap);
+  mount(sb, n => barH2(n, { labels: top.map(e => e.uf), a: top.map(e => e.pcli), b: top.map(e => e.pvend), tip: i => [['Clientes', nf(top[i].cli) + ' (' + nf(top[i].pcli, 1) + '%)', C.s1], ['Vendedores', nf(top[i].vend) + ' (' + nf(top[i].pvend, 1) + '%)', C.s2]] }));
+  sec.appendChild(spacer());
+  let um = 'frete'; const ur = chartDiv('g-rank');
+  const UM = { frete: ['Frete médio por item', v => brl(v, 2), 'R$'], entrega: ['Entrega mediana (dias)', v => nf(v, 1) + ' d'], atraso: ['% de pedidos atrasados', v => nf(v, 1) + '%'], nota: ['Nota média', v => nf(v, 2)] };
+  const urDraw = n => { const r = E.filter(e => e[um] != null).sort((a, b) => um === 'nota' ? a[um] - b[um] : b[um] - a[um]);
+    barH(n, { labels: r.map(e => e.uf), values: r.map(e => e[um]), lw: 40, rh: 22, fmt: UM[um][1], max: um === 'nota' ? 5 : undefined, color: i => r[i].uf === 'SP' ? C.s2 : C.s1,
+      tip: i => [['Frete médio', brl(r[i].frete, 2)], ['Entrega mediana', nf(r[i].entrega, 1) + ' dias'], ['% atrasados', nf(r[i].atraso, 1) + '%'], ['Nota média', nf(r[i].nota, 2)], ['Clientes', nf(r[i].cli)]] }); };
+  const cities = (arr, col) => `<table class="mtable"><tbody>${arr.map((c, i) => `<tr><td><span class="mono" style="color:var(--t-faint);margin-right:8px">${String(i + 1).padStart(2, '0')}</span>${c.c.replace(/\b\w/g, l => l.toUpperCase())}</td><td style="color:${col}">${nf(c.n)}</td></tr>`).join('')}</tbody></table>`;
+  sec.appendChild(grid(
+    card({ k: 'Impacto regional', idx: 'D7', cls: 'c7', title: 'Longe de SP: mais frete, mais espera, nota menor', sub: 'Por estado do cliente. SP em verde para referência. Ordenado do pior para o melhor.',
+      body: [chips('Métrica', [['frete', 'Frete'], ['entrega', 'Entrega'], ['atraso', 'Atraso'], ['nota', 'Nota']], um, v => { um = v; urDraw(ur); }), ur] }),
+    card({ k: 'Top 10 cidades', idx: 'D7', cls: 'c5', body: [`<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px"><div><div class="flabel" style="margin-bottom:6px">Clientes</div>${cities(D.d7.cid_cli, C.s1)}</div><div><div class="flabel" style="margin-bottom:6px">Vendedores</div>${cities(D.d7.cid_vend, C.s2)}</div></div>`] })
+  ));
+  mount(ur, urDraw);
+};
+
+/* ======================================================= roteamento */
+const app = $('#app'), tabs = $('#tabs'), built = {};
+THEMES.forEach(([id, name]) => {
+  const b = h(`<button class="tab" role="tab" id="tab-${id}" aria-controls="sec-${id}">${name}</button>`); b.onclick = () => go(id); tabs.appendChild(b);
+  app.appendChild(h(`<section class="section" id="sec-${id}" role="tabpanel" aria-labelledby="tab-${id}"></section>`));
+});
+app.appendChild(h(`<footer><span class="dot-ok"><i></i><span class="mono" style="color:var(--ok)">Dados processados</span></span><span>Fonte: Olist Brazilian E-Commerce (Kaggle) · Desafio final Harve · análise em Python (pandas, scikit-learn)</span></footer>`));
+function go(id) {
+  THEMES.forEach(([t]) => { const on = t === id; $('#tab-' + t).classList.toggle('on', on); $('#tab-' + t).setAttribute('aria-selected', on); $('#sec-' + t).classList.toggle('on', on); });
+  if (!built[id]) { built[id] = 1; SECTIONS[id]($('#sec-' + id)); } else REG.forEach(r => r.node.isConnected && r.node.offsetParent && r.fn(r.node));
+  $('#tab-' + id).scrollIntoView({ block: 'nearest', inline: 'center' }); if (location.hash !== '#' + id) history.replaceState(null, '', '#' + id); scrollTo({ top: 0, behavior: 'smooth' }); untip();
+}
+{ const hsh = location.hash.slice(1); go(hsh in SECTIONS ? hsh : 'overview'); }
+</script>
+</body>
+</html>

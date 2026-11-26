@@ -1,0 +1,47 @@
+# =====================================================================
+# .gitignore · Desafio Final Harve (Olist)
+# =====================================================================
+
+# ---------- Python ----------
+# Ambiente virtual (recriável com: pip install pandas numpy scikit-learn matplotlib)
+.venv/
+venv/
+env/
+# Cache de bytecode gerado ao rodar os scripts (ex.: DESAFIOS/__pycache__/)
+__pycache__/
+*.py[cod]
+# Checkpoints do Jupyter, caso use notebooks
+.ipynb_checkpoints/
+
+# ---------- Dados ----------
+# CSVs brutos do Olist (~125 MB no total; olist_geolocation_dataset.csv tem 61 MB,
+# acima do limite recomendado de 50 MB do GitHub). O dashboard não precisa deles:
+# os dados agregados já estão dentro do dashboard_olist.html.
+# Baixe em: https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce
+tabelas/
+*.csv
+# Arquivo intermediário gerado pelo build_data.py
+dashboard/data.json
+
+# ---------- Material do curso ----------
+# Slides da Harve (14 MB, material da escola: não republicar)
+apresentacao_PCD_Padrão.pdf
+
+# ---------- Cópias geradas pelo Claude ----------
+# Pasta criada pelo app com cópias de arquivos. A versão oficial está em dashboard/
+Claude outputs/
+
+# ---------- Sistema operacional ----------
+Thumbs.db
+desktop.ini
+.DS_Store
+~$*
+
+# ---------- Editores / IDEs ----------
+.vscode/
+.idea/
+*.swp
+
+# ---------- Segredos ----------
+.env
+*.env

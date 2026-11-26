@@ -10,12 +10,12 @@ Projeto final do módulo **"Projetos para Cientista de Dados"** da Harve. O obje
 
 ## 🔗 Acessar o dashboard
 
-### ▶ [Abrir o dashboard (arquivo local)](dashboard/dashboard_olist.html)
+### ▶ https://sherveninas06.github.io/Olist_DesafioFinal/dashboard/dashboard_olist.html#overview
 
 | Onde | Como acessar |
 |---|---|
 | **No seu computador** | Clique no link acima ou dê um duplo clique em `dashboard/dashboard_olist.html`. Ele abre no navegador, sem instalar nada. |
-| **Online (GitHub Pages)** | `https://SEU-USUARIO.github.io/NOME-DO-REPO/`. Siga o passo a passo abaixo. |
+| **Online (GitHub Pages)** | [sherveninas06.github.io/Olist_DesafioFinal](https://sherveninas06.github.io/Olist_DesafioFinal/) |
 | **Aba específica** | Acrescente o tema no fim do link: `#vendas`, `#logistica`, `#satisfacao`, `#produtos`, `#frete` ou `#geo`. |
 
 > No GitHub, clicar direto no arquivo `.html` mostra só o código-fonte. Para ver o dashboard funcionando online, publique no **GitHub Pages** (de graça, cerca de 2 minutos).
@@ -25,22 +25,22 @@ Projeto final do módulo **"Projetos para Cientista de Dados"** da Harve. O obje
 1. Suba esta pasta para um repositório **público** no GitHub. A pasta `tabelas/` tem cerca de 125 MB e o GitHub recusa arquivos acima de 100 MB, como o `olist_geolocation_dataset.csv`. Coloque `tabelas/` no `.gitignore`: o dashboard não precisa dos CSVs, porque os dados já estão dentro do HTML.
 2. No repositório, vá em **Settings → Pages**.
 3. Em **Source**, escolha **Deploy from a branch**. Em **Branch**, selecione `main` e a pasta `/ (root)` e clique em **Save**.
-4. Espere 1 ou 2 minutos. O link aparece no topo da página do Pages: `https://SEU-USUARIO.github.io/NOME-DO-REPO/`.
-5. Volte a este README e troque `SEU-USUARIO` e `NOME-DO-REPO` pelos valores reais em todos os links.
+4. Espere 1 ou 2 minutos. O link aparece no topo da página do Pages: `https://sherveninas06.github.io/Olist_DesafioFinal/`.
+5. Volte a este README e troque `Sherveninas06` e `Olist_DesafioFinal` pelos valores reais em todos os links.
 
 O `index.html` na raiz do projeto redireciona automaticamente para `dashboard/dashboard_olist.html`. Assim, o link principal do Pages já abre o dashboard.
 
 **Links diretos depois de publicado:**
 
-- [Visão geral](https://SEU-USUARIO.github.io/NOME-DO-REPO/dashboard/dashboard_olist.html#overview)
-- [Vendas](https://SEU-USUARIO.github.io/NOME-DO-REPO/dashboard/dashboard_olist.html#vendas)
-- [Logística](https://SEU-USUARIO.github.io/NOME-DO-REPO/dashboard/dashboard_olist.html#logistica)
-- [Satisfação](https://SEU-USUARIO.github.io/NOME-DO-REPO/dashboard/dashboard_olist.html#satisfacao)
-- [Produtos](https://SEU-USUARIO.github.io/NOME-DO-REPO/dashboard/dashboard_olist.html#produtos)
-- [Frete & Modelo](https://SEU-USUARIO.github.io/NOME-DO-REPO/dashboard/dashboard_olist.html#frete)
-- [Geografia](https://SEU-USUARIO.github.io/NOME-DO-REPO/dashboard/dashboard_olist.html#geo)
+- [Visão geral](https://sherveninas06.github.io/Olist_DesafioFinal/dashboard/dashboard_olist.html#overview)
+- [Vendas](https://sherveninas06.github.io/Olist_DesafioFinal/dashboard/dashboard_olist.html#vendas)
+- [Logística](https://sherveninas06.github.io/Olist_DesafioFinal/dashboard/dashboard_olist.html#logistica)
+- [Satisfação](https://sherveninas06.github.io/Olist_DesafioFinal/dashboard/dashboard_olist.html#satisfacao)
+- [Produtos](https://sherveninas06.github.io/Olist_DesafioFinal/dashboard/dashboard_olist.html#produtos)
+- [Frete & Modelo](https://sherveninas06.github.io/Olist_DesafioFinal/dashboard/dashboard_olist.html#frete)
+- [Geografia](https://sherveninas06.github.io/Olist_DesafioFinal/dashboard/dashboard_olist.html#geo)
 
-> **Opção sem configurar nada:** depois de subir no GitHub, o link `https://htmlpreview.github.io/?https://github.com/SEU-USUARIO/NOME-DO-REPO/blob/main/dashboard/dashboard_olist.html` mostra o HTML direto. Use como alternativa; o GitHub Pages é mais estável.
+> **Opção sem configurar nada:** depois de subir no GitHub, o link `https://htmlpreview.github.io/?https://github.com/Sherveninas06/Olist_DesafioFinal/blob/main/dashboard/dashboard_olist.html` mostra o HTML direto. Use como alternativa; o GitHub Pages é mais estável.
 
 ---
 
